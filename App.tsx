@@ -1,20 +1,64 @@
+import React from 'react';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-export default function App() {
+import HomeScreen from './src/screens/HomeScreen';
+import ReportEditorScreen from './src/screens/ReportEditorScreen';
+import IncompleteReportsScreen from './src/screens/IncompleteReportsScreen';
+import CompletedReportsScreen from './src/screens/CompletedReportsScreen';
+import OptionsScreen from './src/screens/OptionsScreen';
+import DraftSuccessScreen from './src/screens/DraftSuccessScreen';
+import { ThemeProvider, useThemeContext } from './src/lib/theme';
+import { RootStackParamList } from './src/types/navigation';
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
+
+function AppNavigator() {
+  const { theme } = useThemeContext();
+
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <NavigationContainer
+      theme={{
+        ...DefaultTheme,
+        colors: {
+          ...DefaultTheme.colors,
+          background: theme.background,
+          card: theme.surface,
+          text: theme.text,
+          border: theme.border,
+          primary: theme.primary,
+        },
+      }}
+    >
+      <StatusBar style="dark" />
+      <Stack.Navigator
+        initialRouteName="Home"
+        screenOptions={{
+          headerStyle: { backgroundColor: theme.surface },
+          headerTintColor: theme.text,
+          contentStyle: { backgroundColor: theme.background },
+          headerTitleStyle: { fontWeight: '700' },
+        }}
+      >
+        <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'DamageDraft' }} />
+        <Stack.Screen name="ReportEditor" component={ReportEditorScreen} options={{ title: 'Report Editor' }} />
+        <Stack.Screen name="IncompleteReports" component={IncompleteReportsScreen} options={{ title: 'Incomplete Reports' }} />
+        <Stack.Screen name="CompletedReports" component={CompletedReportsScreen} options={{ title: 'Completed Reports' }} />
+        <Stack.Screen name="Options" component={OptionsScreen} options={{ title: 'Options' }} />
+        <Stack.Screen name="DraftSuccess" component={DraftSuccessScreen} options={{ title: 'Draft Opened' }} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <AppNavigator />
+      </ThemeProvider>
+    </SafeAreaProvider>
+  );
+}

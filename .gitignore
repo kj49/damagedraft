@@ -39,3 +39,8 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# local gradle cache used for local builds
+.gradle-local/
+
+.gradle-local/
