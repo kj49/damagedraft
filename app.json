@@ -4,7 +4,7 @@
     "slug": "DamageDraft",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/branding/launcher-outline-minimal.png",
+    "icon": "./assets/branding/launcher-icon-clean.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -21,7 +21,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/branding/launcher-outline-minimal.png",
+        "foregroundImage": "./assets/branding/launcher-icon-clean.png",
         "backgroundColor": "#061126"
       },
       "permissions": [

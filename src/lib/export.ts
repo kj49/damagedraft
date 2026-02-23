@@ -23,6 +23,11 @@ function escapeCsv(value: string): string {
   return `"${escaped}"`;
 }
 
+function toExcelTextFormula(value: string): string {
+  const escaped = value.replace(/"/g, '""');
+  return `="${escaped}"`;
+}
+
 async function writeCacheFile(fileName: string, content: string): Promise<string> {
   const base = FileSystem.cacheDirectory ?? '';
   const uri = `${base}${fileName}`;
@@ -49,8 +54,9 @@ function buildCsvContent(data: Awaited<ReturnType<typeof listAllReportsForExport
     'created_at',
     'vin_text',
     'unit_location',
+    'make_model',
     'recipients',
-    'codes',
+    'codes_text',
     'notes',
     'photo_count',
     'has_vin_photo',
@@ -61,6 +67,7 @@ function buildCsvContent(data: Awaited<ReturnType<typeof listAllReportsForExport
   for (const item of data) {
     const codes = item.codes.map((code) => code.code).join('|');
     const notesSingleLine = item.report.notes.replace(/\r?\n+/g, ' ').trim();
+    const makeModel = [item.report.make_text, item.report.model_text].filter(Boolean).join(' / ');
     const photoCount = item.photos.length;
     const hasVin = item.photos.some((photo) => photo.is_vin === 1) ? 1 : 0;
 
@@ -68,8 +75,9 @@ function buildCsvContent(data: Awaited<ReturnType<typeof listAllReportsForExport
       escapeCsv(toIso(item.report.created_at)),
       escapeCsv(item.report.vin_text),
       escapeCsv(item.report.unit_location),
+      escapeCsv(makeModel),
       escapeCsv(item.report.recipients),
-      escapeCsv(codes),
+      escapeCsv(toExcelTextFormula(codes)),
       escapeCsv(notesSingleLine),
       String(photoCount),
       String(hasVin),
@@ -93,6 +101,7 @@ function buildPlainTextContent(data: Awaited<ReturnType<typeof listAllReportsFor
         `Report Date: ${toPlainDate(item.report.created_at)}`,
         `VIN: ${item.report.vin_text || ''}`,
         `Location: ${item.report.unit_location || ''}`,
+        `Make/Model: ${[item.report.make_text, item.report.model_text].filter(Boolean).join(' / ')}`,
         `Recipients: ${item.report.recipients || ''}`,
         'Codes:',
         codesSection,

@@ -49,6 +49,8 @@ npx expo run:android
 ## Features Implemented
 
 - New report, save incomplete, resume incomplete
+- Make + model fields in report editor (optional)
+- VIN-based make/model auto-fill (best-effort, with online VIN decode fallback when available)
 - Completed reports list + edit + draft again
 - Completed reports quick duplicate (copies VIN/location/recipients into a new incomplete report; photos/codes cleared)
 - VIN required for draft
@@ -86,9 +88,15 @@ npx expo run:android
   - plain text blocks
   - share sheet export
   - optional email-export to default export address
+  - export warning flow when incomplete reports exist (review / delete all incomplete / continue)
+  - CSV `vin_text`, `unit_location`, `make_model` columns are adjacent for easier spreadsheet copy/paste
+  - damage codes exported in `codes_text` as text-safe value for Excel
 - Photo maintenance:
   - delete photos older than 7 days
   - delete all stored photos
+- Incomplete reports:
+  - per-report delete
+  - delete all incomplete reports
 - Theme options:
   - dark/light mode with `system`, `light`, and `dark` selection in Options
 - Branding:

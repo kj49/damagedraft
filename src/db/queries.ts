@@ -28,6 +28,8 @@ const REPORT_UPDATABLE_FIELDS = new Set([
   'status',
   'send_status',
   'vin_text',
+  'make_text',
+  'model_text',
   'unit_location',
   'manufacturer_group',
   'recipients',
@@ -37,7 +39,15 @@ const REPORT_UPDATABLE_FIELDS = new Set([
 type ReportUpdateFields = Partial<
   Pick<
     ReportRow,
-    'status' | 'send_status' | 'vin_text' | 'unit_location' | 'manufacturer_group' | 'recipients' | 'notes'
+    | 'status'
+    | 'send_status'
+    | 'vin_text'
+    | 'make_text'
+    | 'model_text'
+    | 'unit_location'
+    | 'manufacturer_group'
+    | 'recipients'
+    | 'notes'
   >
 >;
 
@@ -67,12 +77,14 @@ export async function createReport(status: ReportStatus = 'incomplete'): Promise
         created_at,
         updated_at,
         vin_text,
+        make_text,
+        model_text,
         unit_location,
         manufacturer_group,
         recipients,
         notes
       )
-      VALUES (?, ?, ?, ?, ?, '', '', ?, ?, '')
+      VALUES (?, ?, ?, ?, ?, '', '', '', '', ?, ?, '')
     `,
     id,
     status,
@@ -109,12 +121,14 @@ export async function quickDuplicateReport(sourceReportId: string): Promise<Repo
         created_at,
         updated_at,
         vin_text,
+        make_text,
+        model_text,
         unit_location,
         manufacturer_group,
         recipients,
         notes
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     id,
     'incomplete',
@@ -122,6 +136,8 @@ export async function quickDuplicateReport(sourceReportId: string): Promise<Repo
     now,
     now,
     source.vin_text,
+    source.make_text,
+    source.model_text,
     source.unit_location,
     source.manufacturer_group,
     source.recipients,
@@ -420,6 +436,26 @@ export async function deleteReport(id: string): Promise<void> {
     await deleteFileBestEffort(photo.uri);
   }
   await db.runAsync('DELETE FROM reports WHERE id = ?', id);
+}
+
+export async function countReportsByStatus(status: ReportStatus): Promise<number> {
+  await initDb();
+  const db = await getDb();
+  const row = await db.getFirstAsync<{ count: number }>(
+    'SELECT COUNT(1) AS count FROM reports WHERE status = ?',
+    status
+  );
+  return Number(row?.count ?? 0);
+}
+
+export async function deleteAllReportsByStatus(status: ReportStatus): Promise<number> {
+  await initDb();
+  const db = await getDb();
+  const rows = await db.getAllAsync<{ id: string }>('SELECT id FROM reports WHERE status = ?', status);
+  for (const row of rows) {
+    await deleteReport(row.id);
+  }
+  return rows.length;
 }
 
 export async function getSettings(): Promise<SettingsRow> {

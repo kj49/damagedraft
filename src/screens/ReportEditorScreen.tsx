@@ -42,7 +42,7 @@ import { openEmailDraft } from '../lib/email';
 import { cleanupTempFiles, compressPhotosForEmail, fileExists, saveCapturedPhoto } from '../lib/images';
 import { extractVinFromImage, hasVinAmbiguousChars, normalizeVinLight } from '../lib/ocr';
 import { useThemeContext } from '../lib/theme';
-import { detectManufacturerGroupFromVin } from '../lib/vin';
+import { detectManufacturerGroupFromVin, prefillMakeModelFromVin } from '../lib/vin';
 import { CodeOption, ReportCodeRow, ReportPhotoRow, ReportStatus } from '../types/models';
 import { RootStackParamList } from '../types/navigation';
 
@@ -77,11 +77,17 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
   const [status, setStatus] = useState<ReportStatus>('incomplete');
 
   const [vinText, setVinText] = useState('');
+  const [makeText, setMakeText] = useState('');
+  const [modelText, setModelText] = useState('');
   const [unitLocation, setUnitLocation] = useState('');
   const [recipients, setRecipients] = useState('');
   const [notes, setNotes] = useState('');
   const [codes, setCodes] = useState<ReportCodeRow[]>([]);
   const [photos, setPhotos] = useState<ReportPhotoRow[]>([]);
+  const makeEditedRef = useRef(false);
+  const modelEditedRef = useRef(false);
+  const vinPrefillSeqRef = useRef(0);
+  const lastPrefilledVinRef = useRef('');
 
   const [topAreaCodes, setTopAreaCodes] = useState<string[]>([]);
   const [topTypeCodes, setTopTypeCodes] = useState<string[]>([]);
@@ -158,11 +164,16 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
     setReportId(detail.id);
     setStatus(detail.status);
     setVinText(detail.vin_text);
+    setMakeText(detail.make_text || '');
+    setModelText(detail.model_text || '');
     setUnitLocation(detail.unit_location);
     setRecipients(detail.recipients);
     setNotes(detail.notes);
     setCodes(detail.codes);
     setPhotos(detail.photos);
+    makeEditedRef.current = Boolean(detail.make_text?.trim());
+    modelEditedRef.current = Boolean(detail.model_text?.trim());
+    lastPrefilledVinRef.current = normalizeVinLight(detail.vin_text || '');
   }, []);
 
   const initialize = useCallback(async () => {
@@ -190,6 +201,30 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
     void initialize();
   }, [initialize]);
 
+  useEffect(() => {
+    if (normalizedVin.length < 3) {
+      return;
+    }
+    if (normalizedVin === lastPrefilledVinRef.current) {
+      return;
+    }
+
+    const seq = ++vinPrefillSeqRef.current;
+    lastPrefilledVinRef.current = normalizedVin;
+    void (async () => {
+      const prefill = await prefillMakeModelFromVin(normalizedVin);
+      if (vinPrefillSeqRef.current !== seq) {
+        return;
+      }
+      if (!makeEditedRef.current) {
+        setMakeText(prefill.make.trim());
+      }
+      if (!modelEditedRef.current) {
+        setModelText(prefill.model.trim());
+      }
+    })();
+  }, [normalizedVin]);
+
   const persistFields = useCallback(
     async (nextStatus?: ReportStatus) => {
       if (!reportId) {
@@ -200,6 +235,8 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
       await updateReportFields(reportId, {
         status: finalStatus,
         vin_text: normalizeVinLight(vinText),
+        make_text: makeText.trim(),
+        model_text: modelText.trim(),
         unit_location: unitLocation,
         manufacturer_group: detectManufacturerGroupFromVin(vinText),
         recipients,
@@ -207,7 +244,7 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
       });
       setStatus(finalStatus);
     },
-    [reportId, status, vinText, unitLocation, recipients, notes]
+    [reportId, status, vinText, makeText, modelText, unitLocation, recipients, notes]
   );
 
   const handleAddCode = async (code: string) => {
@@ -479,6 +516,20 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
       }
     }
 
+    if (!makeText.trim()) {
+      const proceed = await askConfirm('Are you sure you want to proceed without make?');
+      if (!proceed) {
+        return;
+      }
+    }
+
+    if (!modelText.trim()) {
+      const proceed = await askConfirm('Are you sure you want to proceed without model?');
+      if (!proceed) {
+        return;
+      }
+    }
+
     if (photos.length > 12) {
       const proceed = await askConfirm('Many photos may exceed email limits; consider fewer photos. Proceed anyway?');
       if (!proceed) {
@@ -613,6 +664,32 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
             placeholderTextColor={theme.mutedText}
             style={[styles.input, styles.locationInput, { borderColor: theme.border, color: theme.text }]}
           />
+        </View>
+
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Make / Model</Text>
+          <View style={styles.inlineButtons}>
+            <TextInput
+              value={makeText}
+              onChangeText={(value) => {
+                makeEditedRef.current = value.trim().length > 0;
+                setMakeText(value);
+              }}
+              placeholder="Make (auto-fill when VIN resolves)"
+              placeholderTextColor={theme.mutedText}
+              style={[styles.input, styles.inlineButton, { borderColor: theme.border, color: theme.text }]}
+            />
+            <TextInput
+              value={modelText}
+              onChangeText={(value) => {
+                modelEditedRef.current = value.trim().length > 0;
+                setModelText(value);
+              }}
+              placeholder="Model (auto-fill when available)"
+              placeholderTextColor={theme.mutedText}
+              style={[styles.input, styles.inlineButton, { borderColor: theme.border, color: theme.text }]}
+            />
+          </View>
         </View>
 
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}> 

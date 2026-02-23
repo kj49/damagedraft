@@ -19,6 +19,8 @@ export interface ReportRow {
   created_at: number;
   updated_at: number;
   vin_text: string;
+  make_text: string;
+  model_text: string;
   unit_location: string;
   manufacturer_group: ManufacturerGroup;
   recipients: string;

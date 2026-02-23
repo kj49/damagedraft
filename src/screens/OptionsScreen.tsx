@@ -1,15 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import Button from '../components/Button';
-import { deleteAllStoredPhotos, deletePhotosOlderThan } from '../db/queries';
+import {
+  countReportsByStatus,
+  deleteAllReportsByStatus,
+  deleteAllStoredPhotos,
+  deletePhotosOlderThan,
+} from '../db/queries';
 import { emailExportFile, exportLogsCsv, exportLogsText } from '../lib/export';
 import { useThemeContext } from '../lib/theme';
 import { ThemeMode } from '../types/models';
+import { RootStackParamList } from '../types/navigation';
 
 const THEME_MODES: ThemeMode[] = ['system', 'light', 'dark'];
 
-export default function OptionsScreen() {
+type Props = NativeStackScreenProps<RootStackParamList, 'Options'>;
+
+export default function OptionsScreen({ navigation }: Props) {
   const { theme, settings, effectiveMode, saveSettings } = useThemeContext();
   const [defaultRecipients, setDefaultRecipients] = useState('');
   const [defaultExportEmail, setDefaultExportEmail] = useState('');
@@ -86,6 +95,64 @@ export default function OptionsScreen() {
     ]);
   };
 
+  const runExportWithIncompleteCheck = (action: () => Promise<void>) => {
+    void (async () => {
+      let incompleteCount = 0;
+      try {
+        incompleteCount = await countReportsByStatus('incomplete');
+      } catch (error) {
+        Alert.alert('Error', (error as Error).message);
+        return;
+      }
+      if (incompleteCount <= 0) {
+        try {
+          await action();
+        } catch (error) {
+          Alert.alert('Export failed', (error as Error).message);
+        }
+        return;
+      }
+
+      Alert.alert(
+        'Incomplete reports found',
+        `${incompleteCount} incomplete report(s) exist. Export anyway?`,
+        [
+          {
+            text: 'Go to Incomplete Reports',
+            onPress: () => navigation.navigate('IncompleteReports'),
+          },
+          {
+            text: 'Delete All Incomplete Reports',
+            style: 'destructive',
+            onPress: () => {
+              void (async () => {
+                try {
+                  const deleted = await deleteAllReportsByStatus('incomplete');
+                  Alert.alert('Done', `Deleted ${deleted} incomplete report(s).`);
+                } catch (error) {
+                  Alert.alert('Delete failed', (error as Error).message);
+                }
+              })();
+            },
+          },
+          {
+            text: 'Continue',
+            onPress: () => {
+              void (async () => {
+                try {
+                  await action();
+                } catch (error) {
+                  Alert.alert('Export failed', (error as Error).message);
+                }
+              })();
+            },
+          },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+    })();
+  };
+
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content}>
       <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -145,12 +212,27 @@ export default function OptionsScreen() {
 
       <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Export Logs</Text>
-        <Button title="Export CSV" onPress={() => void exportLogsCsv()} />
-        <Button title="Export Plain Text" onPress={() => void exportLogsText()} />
+        <Text style={[styles.label, { color: theme.mutedText }]}>
+          CSV exports damage codes as text (`codes_text`) to avoid Excel date conversion.
+        </Text>
+        <Button title="Export CSV" onPress={() => runExportWithIncompleteCheck(exportLogsCsv)} />
+        <Button title="Export Plain Text" onPress={() => runExportWithIncompleteCheck(exportLogsText)} />
         {defaultExportEmail.trim() ? (
           <>
-            <Button title="Email Export CSV" variant="secondary" onPress={() => void emailExportFile(defaultExportEmail, 'csv')} />
-            <Button title="Email Export Text" variant="secondary" onPress={() => void emailExportFile(defaultExportEmail, 'txt')} />
+            <Button
+              title="Email Export CSV"
+              variant="secondary"
+              onPress={() =>
+                runExportWithIncompleteCheck(() => emailExportFile(defaultExportEmail, 'csv'))
+              }
+            />
+            <Button
+              title="Email Export Text"
+              variant="secondary"
+              onPress={() =>
+                runExportWithIncompleteCheck(() => emailExportFile(defaultExportEmail, 'txt'))
+              }
+            />
           </>
         ) : null}
       </View>

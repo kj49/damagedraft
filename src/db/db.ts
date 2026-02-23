@@ -55,6 +55,8 @@ export async function initDb(): Promise<void> {
           created_at INTEGER NOT NULL,
           updated_at INTEGER NOT NULL,
           vin_text TEXT NOT NULL DEFAULT '',
+          make_text TEXT NOT NULL DEFAULT '',
+          model_text TEXT NOT NULL DEFAULT '',
           unit_location TEXT NOT NULL DEFAULT '',
           manufacturer_group TEXT NOT NULL DEFAULT 'unknown',
           recipients TEXT NOT NULL DEFAULT '',
@@ -104,6 +106,8 @@ export async function initDb(): Promise<void> {
       `);
 
       await ensureColumn(db, 'reports', 'send_status', "TEXT NOT NULL DEFAULT 'none'");
+      await ensureColumn(db, 'reports', 'make_text', "TEXT NOT NULL DEFAULT ''");
+      await ensureColumn(db, 'reports', 'model_text', "TEXT NOT NULL DEFAULT ''");
       await ensureColumn(db, 'reports', 'manufacturer_group', "TEXT NOT NULL DEFAULT 'unknown'");
       await ensureColumn(db, 'settings', 'theme_mode', "TEXT NOT NULL DEFAULT 'system'");
       await db.execAsync(`CREATE INDEX IF NOT EXISTS idx_reports_send_status ON reports(send_status);`);
@@ -119,6 +123,14 @@ export async function initDb(): Promise<void> {
         UPDATE reports
         SET manufacturer_group = 'unknown'
         WHERE manufacturer_group IS NULL OR manufacturer_group = '';
+
+        UPDATE reports
+        SET make_text = ''
+        WHERE make_text IS NULL;
+
+        UPDATE reports
+        SET model_text = ''
+        WHERE model_text IS NULL;
 
         UPDATE settings
         SET theme_mode = 'system'

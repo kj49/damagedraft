@@ -19,6 +19,11 @@ export interface VinDecodedInfo {
   fordHold?: FordHoldCodeMapping;
 }
 
+export interface VinMakeModel {
+  make: string;
+  model: string;
+}
+
 const GROUP_PREFIXES: Record<ManufacturerGroup, string[]> = {
   ford: [
     '1FA', '1FB', '1FC', '1FD', '1FM', '1FT', '1LN', '1LM', '2FA', '2FB', '2FM', '3FA', '3FE', '3FM', '5LM',
@@ -178,4 +183,48 @@ export function decodeVinInfo(vinInput: string): VinDecodedInfo {
     assemblyChar,
     fordHold,
   };
+}
+
+function toTitleCase(value: string): string {
+  return value
+    .toLowerCase()
+    .split(/[\s-]+/g)
+    .filter(Boolean)
+    .map((part) => part[0].toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+export async function prefillMakeModelFromVin(vinInput: string): Promise<VinMakeModel> {
+  const vin = normalizeVinLight(vinInput);
+  const localMake = detectLikelyMakeFromVin(vin);
+  const localMakeResolved = localMake === 'Unknown' ? '' : localMake;
+
+  if (vin.length !== 17) {
+    return { make: localMakeResolved, model: '' };
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    const response = await fetch(
+      `https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValuesExtended/${vin}?format=json`,
+      {
+        signal: controller.signal,
+      }
+    );
+    clearTimeout(timeout);
+    if (!response.ok) {
+      return { make: localMakeResolved, model: '' };
+    }
+
+    const payload = (await response.json()) as {
+      Results?: Array<{ Make?: string; Model?: string }>;
+    };
+    const result = payload.Results?.[0];
+    const make = result?.Make?.trim() ? toTitleCase(result.Make.trim()) : localMakeResolved;
+    const model = result?.Model?.trim() ? toTitleCase(result.Model.trim()) : '';
+    return { make, model };
+  } catch {
+    return { make: localMakeResolved, model: '' };
+  }
 }

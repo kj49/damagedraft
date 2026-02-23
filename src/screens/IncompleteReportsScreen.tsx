@@ -4,7 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import Button from '../components/Button';
-import { deleteReport, listReports } from '../db/queries';
+import { deleteAllReportsByStatus, deleteReport, listReports } from '../db/queries';
 import { useThemeContext } from '../lib/theme';
 import { ReportListItem } from '../types/models';
 import { RootStackParamList } from '../types/navigation';
@@ -53,8 +53,29 @@ export default function IncompleteReportsScreen({ navigation }: Props) {
     ]);
   };
 
+  const confirmDeleteAll = () => {
+    Alert.alert('Delete all incomplete reports?', 'This will remove every incomplete report and its photos.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete All',
+        style: 'destructive',
+        onPress: () => {
+          void (async () => {
+            const deleted = await deleteAllReportsByStatus('incomplete');
+            await load();
+            Alert.alert('Done', `Deleted ${deleted} incomplete report(s).`);
+          })();
+        },
+      },
+    ]);
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}> 
+      <View style={styles.topActions}>
+        <Button title="Home" variant="secondary" onPress={() => navigation.navigate('Home')} />
+        <Button title="Delete All Incomplete" variant="danger" onPress={confirmDeleteAll} />
+      </View>
       {loading ? (
         <Text style={{ color: theme.mutedText }}>Loading...</Text>
       ) : reports.length === 0 ? (
@@ -95,6 +116,10 @@ const styles = StyleSheet.create({
   list: {
     gap: 10,
     paddingBottom: 16,
+  },
+  topActions: {
+    gap: 8,
+    marginBottom: 10,
   },
   item: {
     borderWidth: 1,
