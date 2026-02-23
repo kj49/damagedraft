@@ -3,6 +3,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import {
   DEFAULT_EXPORT_EMAIL,
   DEFAULT_RECIPIENTS,
+  DEFAULT_THEME_MODE,
   DEFAULT_THEME_ACCENT,
   DEFAULT_THEME_PRIMARY,
   getDb,
@@ -87,6 +88,51 @@ export async function createReport(status: ReportStatus = 'incomplete'): Promise
     throw new Error('Failed to create report');
   }
   return row;
+}
+
+export async function quickDuplicateReport(sourceReportId: string): Promise<ReportRow> {
+  await initDb();
+  const db = await getDb();
+  const source = await db.getFirstAsync<ReportRow>('SELECT * FROM reports WHERE id = ?', sourceReportId);
+  if (!source) {
+    throw new Error('Source report not found');
+  }
+
+  const id = makeId('rpt');
+  const now = Date.now();
+  await db.runAsync(
+    `
+      INSERT INTO reports (
+        id,
+        status,
+        send_status,
+        created_at,
+        updated_at,
+        vin_text,
+        unit_location,
+        manufacturer_group,
+        recipients,
+        notes
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+    id,
+    'incomplete',
+    'none',
+    now,
+    now,
+    source.vin_text,
+    source.unit_location,
+    source.manufacturer_group,
+    source.recipients,
+    ''
+  );
+
+  const duplicated = await db.getFirstAsync<ReportRow>('SELECT * FROM reports WHERE id = ?', id);
+  if (!duplicated) {
+    throw new Error('Failed to duplicate report');
+  }
+  return duplicated;
 }
 
 export async function updateReportFields(id: string, fields: ReportUpdateFields): Promise<void> {
@@ -385,17 +431,19 @@ export async function getSettings(): Promise<SettingsRow> {
       id: 'singleton',
       default_recipients: DEFAULT_RECIPIENTS,
       default_export_email: DEFAULT_EXPORT_EMAIL,
+      theme_mode: DEFAULT_THEME_MODE as SettingsRow['theme_mode'],
       theme_primary: DEFAULT_THEME_PRIMARY,
       theme_accent: DEFAULT_THEME_ACCENT,
     };
     await db.runAsync(
       `
-        INSERT INTO settings (id, default_recipients, default_export_email, theme_primary, theme_accent)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO settings (id, default_recipients, default_export_email, theme_mode, theme_primary, theme_accent)
+        VALUES (?, ?, ?, ?, ?, ?)
       `,
       defaults.id,
       defaults.default_recipients,
       defaults.default_export_email,
+      defaults.theme_mode,
       defaults.theme_primary,
       defaults.theme_accent
     );
@@ -406,6 +454,7 @@ export async function getSettings(): Promise<SettingsRow> {
     id: 'singleton',
     default_recipients: row.default_recipients ?? DEFAULT_RECIPIENTS,
     default_export_email: row.default_export_email ?? DEFAULT_EXPORT_EMAIL,
+    theme_mode: (row.theme_mode ?? DEFAULT_THEME_MODE) as SettingsRow['theme_mode'],
     theme_primary: row.theme_primary ?? DEFAULT_THEME_PRIMARY,
     theme_accent: row.theme_accent ?? DEFAULT_THEME_ACCENT,
   };
@@ -423,17 +472,19 @@ export async function updateSettings(partial: Partial<Omit<SettingsRow, 'id'>>):
 
   await db.runAsync(
     `
-      INSERT INTO settings (id, default_recipients, default_export_email, theme_primary, theme_accent)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO settings (id, default_recipients, default_export_email, theme_mode, theme_primary, theme_accent)
+      VALUES (?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         default_recipients = excluded.default_recipients,
         default_export_email = excluded.default_export_email,
+        theme_mode = excluded.theme_mode,
         theme_primary = excluded.theme_primary,
         theme_accent = excluded.theme_accent
     `,
     next.id,
     next.default_recipients,
     next.default_export_email,
+    next.theme_mode,
     next.theme_primary,
     next.theme_accent
   );

@@ -4,7 +4,7 @@
     "slug": "DamageDraft",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/branding/launcher-outline-minimal.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -15,21 +15,18 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "DamageDraft uses your camera to capture VIN and damage photos for reports."
+        "NSCameraUsageDescription": "DamageDraft uses your camera to capture VIN and damage photos for reports.",
+        "NSPhotoLibraryUsageDescription": "DamageDraft uses your photo library to attach VIN and damage photos to reports."
       }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/branding/launcher-outline-minimal.png",
+        "backgroundColor": "#061126"
       },
       "permissions": [
         "CAMERA",
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
-        "CAMERA",
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.CAMERA"
       ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -41,6 +38,12 @@
     "plugins": [
       "expo-mail-composer",
       "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "DamageDraft uses your photo library to attach VIN and damage photos to reports."
+        }
+      ],
       [
         "expo-camera",
         {

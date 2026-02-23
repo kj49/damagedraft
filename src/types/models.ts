@@ -1,5 +1,6 @@
 export type ReportStatus = 'incomplete' | 'completed';
 export type SendStatus = 'none' | 'pending_send_confirmation' | 'sent_confirmed';
+export type ThemeMode = 'system' | 'light' | 'dark';
 export type ManufacturerGroup =
   | 'ford'
   | 'stellantis'
@@ -54,6 +55,7 @@ export interface SettingsRow {
   id: 'singleton';
   default_recipients: string;
   default_export_email: string;
+  theme_mode: ThemeMode;
   theme_primary: string;
   theme_accent: string;
 }

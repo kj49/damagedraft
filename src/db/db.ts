@@ -2,6 +2,7 @@ import * as SQLite from 'expo-sqlite';
 
 export const DEFAULT_RECIPIENTS = 'claims@railyard.local;damage@railyard.local';
 export const DEFAULT_EXPORT_EMAIL = '';
+export const DEFAULT_THEME_MODE = 'system';
 export const DEFAULT_THEME_PRIMARY = '#1565C0';
 export const DEFAULT_THEME_ACCENT = '#42A5F5';
 
@@ -81,6 +82,7 @@ export async function initDb(): Promise<void> {
           id TEXT PRIMARY KEY NOT NULL,
           default_recipients TEXT NOT NULL DEFAULT '',
           default_export_email TEXT NOT NULL DEFAULT '',
+          theme_mode TEXT NOT NULL DEFAULT 'system',
           theme_primary TEXT NOT NULL DEFAULT '',
           theme_accent TEXT NOT NULL DEFAULT ''
         );
@@ -99,11 +101,12 @@ export async function initDb(): Promise<void> {
         CREATE INDEX IF NOT EXISTS idx_report_codes_code ON report_codes(code);
         CREATE INDEX IF NOT EXISTS idx_report_photos_created_at ON report_photos(created_at);
         CREATE INDEX IF NOT EXISTS idx_report_events_type_at ON report_events(event_type, event_at);
-        CREATE INDEX IF NOT EXISTS idx_reports_send_status ON reports(send_status);
       `);
 
       await ensureColumn(db, 'reports', 'send_status', "TEXT NOT NULL DEFAULT 'none'");
       await ensureColumn(db, 'reports', 'manufacturer_group', "TEXT NOT NULL DEFAULT 'unknown'");
+      await ensureColumn(db, 'settings', 'theme_mode', "TEXT NOT NULL DEFAULT 'system'");
+      await db.execAsync(`CREATE INDEX IF NOT EXISTS idx_reports_send_status ON reports(send_status);`);
 
       await db.execAsync(`
         UPDATE reports
@@ -116,21 +119,30 @@ export async function initDb(): Promise<void> {
         UPDATE reports
         SET manufacturer_group = 'unknown'
         WHERE manufacturer_group IS NULL OR manufacturer_group = '';
+
+        UPDATE settings
+        SET theme_mode = 'system'
+        WHERE theme_mode IS NULL OR theme_mode = '';
       `);
 
       await db.runAsync(
         `
-          INSERT INTO settings (id, default_recipients, default_export_email, theme_primary, theme_accent)
-          VALUES (?, ?, ?, ?, ?)
+          INSERT INTO settings (id, default_recipients, default_export_email, theme_mode, theme_primary, theme_accent)
+          VALUES (?, ?, ?, ?, ?, ?)
           ON CONFLICT(id) DO NOTHING
         `,
         'singleton',
         DEFAULT_RECIPIENTS,
         DEFAULT_EXPORT_EMAIL,
+        DEFAULT_THEME_MODE,
         DEFAULT_THEME_PRIMARY,
         DEFAULT_THEME_ACCENT
       );
-    })();
+    })().catch((error) => {
+      // Allow retry on next call if initialization fails.
+      initPromise = null;
+      throw error;
+    });
   }
 
   return initPromise;

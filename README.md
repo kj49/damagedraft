@@ -8,6 +8,7 @@ Android-first Expo app for creating Outlook-ready damage report email drafts. Th
 - Navigation: `@react-navigation/native`, `@react-navigation/native-stack`
 - Database: `expo-sqlite`
 - Camera: `expo-camera`
+- Gallery picker: `expo-image-picker`
 - OCR: `expo-text-extractor`
 - Image compression: `expo-image-manipulator`
 - Local file storage: `expo-file-system/legacy`
@@ -40,6 +41,7 @@ npx expo run:android
 - Use a development build (`npx expo run:android`) or EAS build for full functionality (OCR, native compose, etc.).
 - App config already includes required plugins/permissions in `app.json`:
   - `expo-camera` plugin + camera permission message
+  - `expo-image-picker` plugin + photo library permission message
   - `expo-mail-composer`
   - `expo-sqlite`
   - Android `CAMERA` permission
@@ -48,6 +50,7 @@ npx expo run:android
 
 - New report, save incomplete, resume incomplete
 - Completed reports list + edit + draft again
+- Completed reports quick duplicate (copies VIN/location/recipients into a new incomplete report; photos/codes cleared)
 - VIN required for draft
 - VIN photo required for draft (and attached)
 - VIN OCR extraction with full VIN preference (`[A-HJ-NPR-Z0-9]{17}`), fallback to longest alphanumeric run >= 8
@@ -58,6 +61,7 @@ npx expo run:android
   - Top 5 Area/Type from completed reports in last 30 days shown at top of dropdowns
 - Fast capture loop for non-VIN photos (`Add Photos` -> shutter -> keeps camera open)
 - VIN capture flow (`Capture VIN Photo (OCR)`)
+- Gallery photo selection for VIN and damage photos
 - Local photo storage in app directory
 - Missing-file-safe rendering (`missing file` placeholder instead of crash)
 - Email draft creation with:
@@ -86,8 +90,10 @@ npx expo run:android
   - delete photos older than 7 days
   - delete all stored photos
 - Theme options:
-  - default blue/white
-  - configurable primary/accent palette in Options
+  - dark/light mode with `system`, `light`, and `dark` selection in Options
+- Branding:
+  - launcher icon configured from `assets/branding/launcher-outline-minimal.png`
+  - home wordmark image loaded from `assets/branding/damagedraft-wordmark.png`
 
 ## Data Model
 

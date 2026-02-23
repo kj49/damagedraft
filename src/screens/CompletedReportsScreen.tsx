@@ -4,7 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import Button from '../components/Button';
-import { deleteReport, listReports } from '../db/queries';
+import { deleteReport, listReports, quickDuplicateReport } from '../db/queries';
 import { useThemeContext } from '../lib/theme';
 import { ReportListItem } from '../types/models';
 import { RootStackParamList } from '../types/navigation';
@@ -20,6 +20,7 @@ export default function CompletedReportsScreen({ navigation }: Props) {
   const { theme } = useThemeContext();
   const [reports, setReports] = useState<ReportListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [duplicatingReportId, setDuplicatingReportId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -53,6 +54,20 @@ export default function CompletedReportsScreen({ navigation }: Props) {
     ]);
   };
 
+  const handleQuickDuplicate = (id: string) => {
+    void (async () => {
+      setDuplicatingReportId(id);
+      try {
+        const duplicated = await quickDuplicateReport(id);
+        navigation.navigate('ReportEditor', { reportId: duplicated.id });
+      } catch (error) {
+        Alert.alert('Duplicate failed', (error as Error).message);
+      } finally {
+        setDuplicatingReportId(null);
+      }
+    })();
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}> 
       <View style={styles.topActions}>
@@ -83,6 +98,12 @@ export default function CompletedReportsScreen({ navigation }: Props) {
                 <Button
                   title="Open"
                   onPress={() => navigation.navigate('ReportEditor', { reportId: item.id })}
+                />
+                <Button
+                  title="Quick Duplicate"
+                  variant="secondary"
+                  onPress={() => handleQuickDuplicate(item.id)}
+                  loading={duplicatingReportId === item.id}
                 />
                 <Button title="Delete" variant="danger" onPress={() => confirmDelete(item.id)} />
               </View>

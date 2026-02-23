@@ -5,11 +5,12 @@ import Button from '../components/Button';
 import { deleteAllStoredPhotos, deletePhotosOlderThan } from '../db/queries';
 import { emailExportFile, exportLogsCsv, exportLogsText } from '../lib/export';
 import { useThemeContext } from '../lib/theme';
+import { ThemeMode } from '../types/models';
 
-const PALETTE = ['#1565C0', '#1D4ED8', '#0F766E', '#B45309', '#BE123C', '#7C3AED'];
+const THEME_MODES: ThemeMode[] = ['system', 'light', 'dark'];
 
 export default function OptionsScreen() {
-  const { theme, settings, saveSettings } = useThemeContext();
+  const { theme, settings, effectiveMode, saveSettings } = useThemeContext();
   const [defaultRecipients, setDefaultRecipients] = useState('');
   const [defaultExportEmail, setDefaultExportEmail] = useState('');
   const [working, setWorking] = useState(false);
@@ -33,6 +34,14 @@ export default function OptionsScreen() {
       Alert.alert('Error', (error as Error).message);
     } finally {
       setWorking(false);
+    }
+  };
+
+  const setThemeMode = async (mode: ThemeMode) => {
+    try {
+      await saveSettings({ theme_mode: mode });
+    } catch (error) {
+      Alert.alert('Theme update failed', (error as Error).message);
     }
   };
 
@@ -105,6 +114,36 @@ export default function OptionsScreen() {
       </View>
 
       <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Theme</Text>
+        <Text style={[styles.label, { color: theme.mutedText }]}>Current mode: {effectiveMode}</Text>
+        <View style={styles.modeRow}>
+          {THEME_MODES.map((mode) => (
+            <Pressable
+              key={mode}
+              onPress={() => void setThemeMode(mode)}
+              style={[
+                styles.modeButton,
+                {
+                  borderColor: theme.border,
+                  backgroundColor: settings?.theme_mode === mode ? theme.primary : 'transparent',
+                },
+              ]}
+            >
+              <Text
+                style={{
+                  color: settings?.theme_mode === mode ? '#FFFFFF' : theme.text,
+                  fontWeight: '700',
+                  textTransform: 'capitalize',
+                }}
+              >
+                {mode}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
+      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Export Logs</Text>
         <Button title="Export CSV" onPress={() => void exportLogsCsv()} />
         <Button title="Export Plain Text" onPress={() => void exportLogsText()} />
@@ -120,41 +159,6 @@ export default function OptionsScreen() {
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Photo Maintenance</Text>
         <Button title="Delete photos older than 7 days" onPress={cleanupOlder} />
         <Button title="Delete ALL stored photos" onPress={cleanupAll} variant="danger" />
-      </View>
-
-      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Theme</Text>
-        <Text style={[styles.label, { color: theme.mutedText }]}>Primary color</Text>
-        <View style={styles.paletteRow}>
-          {PALETTE.map((color) => (
-            <Pressable
-              key={`primary-${color}`}
-              onPress={() => void saveSettings({ theme_primary: color })}
-              style={[
-                styles.swatch,
-                { backgroundColor: color, borderColor: theme.primary === color ? '#0F172A' : '#CBD5E1' },
-              ]}
-            >
-              <Text>{' '}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <Text style={[styles.label, { color: theme.mutedText }]}>Accent color</Text>
-        <View style={styles.paletteRow}>
-          {PALETTE.map((color) => (
-            <Pressable
-              key={`accent-${color}`}
-              onPress={() => void saveSettings({ theme_accent: color })}
-              style={[
-                styles.swatch,
-                { backgroundColor: color, borderColor: theme.accent === color ? '#0F172A' : '#CBD5E1' },
-              ]}
-            >
-              <Text>{' '}</Text>
-            </Pressable>
-          ))}
-        </View>
       </View>
     </ScrollView>
   );
@@ -190,16 +194,16 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 15,
   },
-  paletteRow: {
+  modeRow: {
     flexDirection: 'row',
     gap: 8,
-    flexWrap: 'wrap',
   },
-  swatch: {
-    width: 34,
-    height: 34,
-    borderRadius: 8,
-    borderWidth: 2,
-    overflow: 'hidden',
+  modeButton: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    minWidth: 84,
+    alignItems: 'center',
   },
 });

@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import CodeEntry from '../components/CodeEntry';
@@ -68,6 +69,7 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
   const { theme } = useThemeContext();
   const cameraRef = useRef<CameraView | null>(null);
   const [permission, requestPermission] = useCameraPermissions();
+  const [mediaPermission, requestMediaPermission] = ImagePicker.useMediaLibraryPermissions();
 
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
@@ -87,6 +89,7 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
   const [cameraVisible, setCameraVisible] = useState(false);
   const [cameraMode, setCameraMode] = useState<CameraMode>('general');
   const [cameraBusy, setCameraBusy] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
 
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState('');
@@ -234,6 +237,15 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
     return result.granted;
   };
 
+  const ensureMediaPermission = async (): Promise<boolean> => {
+    if (mediaPermission?.granted) {
+      return true;
+    }
+
+    const result = await requestMediaPermission();
+    return result.granted;
+  };
+
   const openCamera = async (mode: CameraMode) => {
     const granted = await ensureCameraPermission();
     if (!granted) {
@@ -242,11 +254,96 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
     }
 
     setCameraMode(mode);
+    setCameraReady(false);
     setCameraVisible(true);
   };
 
+  const addVinPhotoFromUri = async (sourceUri: string) => {
+    if (!reportId) {
+      Alert.alert('Report not ready', 'Please close and re-open this report, then try again.');
+      return;
+    }
+
+    const savedUri = await saveCapturedPhoto(sourceUri, true);
+    const existingVin = photos.find((item) => item.is_vin === 1);
+    if (existingVin) {
+      await removePhoto(existingVin.id);
+    }
+
+    const row = await addPhoto(reportId, savedUri, true);
+    setPhotos((prev) => [...prev.filter((item) => item.is_vin !== 1), row]);
+
+    const extracted = await extractVinFromImage(savedUri);
+    if (extracted) {
+      setVinText(normalizeVinLight(extracted));
+    }
+  };
+
+  const addDamagePhotoFromUri = async (sourceUri: string) => {
+    if (!reportId) {
+      Alert.alert('Report not ready', 'Please close and re-open this report, then try again.');
+      return;
+    }
+
+    const savedUri = await saveCapturedPhoto(sourceUri, false);
+    const row = await addPhoto(reportId, savedUri, false);
+    setPhotos((prev) => [...prev, row]);
+  };
+
+  const pickVinFromGallery = async () => {
+    const granted = await ensureMediaPermission();
+    if (!granted) {
+      Alert.alert('Gallery permission required', 'Enable photo library access to pick VIN photos.');
+      return;
+    }
+
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: false,
+        quality: 0.9,
+      });
+      if (result.canceled || !result.assets.length) {
+        return;
+      }
+      await addVinPhotoFromUri(result.assets[0].uri);
+    } catch (error) {
+      Alert.alert('Gallery pick failed', (error as Error).message);
+    }
+  };
+
+  const pickDamagePhotosFromGallery = async () => {
+    const granted = await ensureMediaPermission();
+    if (!granted) {
+      Alert.alert('Gallery permission required', 'Enable photo library access to pick damage photos.');
+      return;
+    }
+
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: true,
+        quality: 0.9,
+      });
+      if (result.canceled || !result.assets.length) {
+        return;
+      }
+
+      for (const asset of result.assets) {
+        await addDamagePhotoFromUri(asset.uri);
+      }
+    } catch (error) {
+      Alert.alert('Gallery pick failed', (error as Error).message);
+    }
+  };
+
   const capturePhoto = async () => {
-    if (!reportId || !cameraRef.current || cameraBusy) {
+    if (!reportId) {
+      Alert.alert('Report not ready', 'Please close and re-open this report, then try again.');
+      return;
+    }
+
+    if (!cameraRef.current || cameraBusy || !cameraReady) {
       return;
     }
 
@@ -261,25 +358,11 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
         return;
       }
 
-      const savedUri = await saveCapturedPhoto(photo.uri, cameraMode === 'vin');
-
       if (cameraMode === 'vin') {
-        const existingVin = photos.find((item) => item.is_vin === 1);
-        if (existingVin) {
-          await removePhoto(existingVin.id);
-        }
-
-        const row = await addPhoto(reportId, savedUri, true);
-        setPhotos((prev) => [...prev.filter((item) => item.is_vin !== 1), row]);
+        await addVinPhotoFromUri(photo.uri);
         setCameraVisible(false);
-
-        const extracted = await extractVinFromImage(savedUri);
-        if (extracted) {
-          setVinText(normalizeVinLight(extracted));
-        }
       } else {
-        const row = await addPhoto(reportId, savedUri, false);
-        setPhotos((prev) => [...prev, row]);
+        await addDamagePhotoFromUri(photo.uri);
       }
     } catch (error) {
       Alert.alert('Capture failed', (error as Error).message);
@@ -476,8 +559,16 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
             autoCapitalize="characters"
           />
           {vinHasAmbiguousChars ? (
-            <View style={[styles.vinWarningWrap, { borderColor: theme.border, backgroundColor: '#FFF8E1' }]}>
-              <Text style={[styles.vinWarningText, { color: '#8A6D3B' }]}>
+            <View
+              style={[
+                styles.vinWarningWrap,
+                {
+                  borderColor: theme.border,
+                  backgroundColor: theme.isDark ? '#2F2612' : '#FFF8E1',
+                },
+              ]}
+            >
+              <Text style={[styles.vinWarningText, { color: theme.isDark ? '#FFD28A' : '#8A6D3B' }]}>
                 OCR note: VINs cannot contain I, O, or Q. Review highlighted characters before drafting.
               </Text>
               <Text style={[styles.vinPreview, { color: theme.text }]}>
@@ -492,7 +583,19 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
               </Text>
             </View>
           ) : null}
-          <Button title="Capture VIN Photo (OCR)" onPress={() => void openCamera('vin')} />
+          <View style={styles.inlineButtons}>
+            <Button
+              title="Capture VIN Photo (OCR)"
+              onPress={() => void openCamera('vin')}
+              style={styles.inlineButton}
+            />
+            <Button
+              title="Choose VIN Photo"
+              onPress={() => void pickVinFromGallery()}
+              variant="secondary"
+              style={styles.inlineButton}
+            />
+          </View>
           <PhotoStrip
             title="VIN Photo"
             photos={vinPhoto ? [vinPhoto] : []}
@@ -514,7 +617,15 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
 
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}> 
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Photos</Text>
-          <Button title="Add Photos" onPress={() => void openCamera('general')} />
+          <View style={styles.inlineButtons}>
+            <Button title="Add Photos" onPress={() => void openCamera('general')} style={styles.inlineButton} />
+            <Button
+              title="Add From Gallery"
+              onPress={() => void pickDamagePhotosFromGallery()}
+              variant="secondary"
+              style={styles.inlineButton}
+            />
+          </View>
           <PhotoStrip
             title="Damage Photos"
             photos={otherPhotos}
@@ -563,7 +674,7 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
           <Button title="Reset to defaults" onPress={() => void saveDefaultsToRecipients()} variant="secondary" />
         </View>
 
-        <View style={[styles.reminder, { backgroundColor: '#E8F2FF', borderColor: theme.border }]}> 
+        <View style={[styles.reminder, { backgroundColor: theme.isDark ? '#0E2A4C' : '#E8F2FF', borderColor: theme.border }]}> 
           <Text style={[styles.reminderTitle, { color: theme.primary }]}>Photo Reminder</Text>
           <Text style={[styles.reminderText, { color: theme.text }]}>Reminder: include (1) wide shot showing bay/location, (2) closeups of damage, (3) VIN photo.</Text>
         </View>
@@ -607,18 +718,36 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
 
       <Modal visible={cameraVisible} animationType="slide" onRequestClose={() => setCameraVisible(false)}>
         <View style={styles.cameraContainer}>
-          <CameraView ref={(ref) => { cameraRef.current = ref; }} style={styles.camera} facing="back" />
+          <CameraView
+            ref={(ref) => { cameraRef.current = ref; }}
+            style={styles.camera}
+            facing="back"
+            onCameraReady={() => setCameraReady(true)}
+          />
 
           <View style={styles.cameraOverlay}>
             <Text style={styles.cameraTitle}>
               {cameraMode === 'vin' ? 'Capture VIN Photo' : 'Add Photos'}
             </Text>
             <View style={styles.cameraButtons}>
-              <Pressable style={[styles.cameraBtn, styles.cameraBtnSecondary]} onPress={() => setCameraVisible(false)}>
+              <Pressable
+                style={[styles.cameraBtn, styles.cameraBtnSecondary]}
+                onPress={() => setCameraVisible(false)}
+              >
                 <Text style={styles.cameraBtnText}>Done</Text>
               </Pressable>
-              <Pressable style={[styles.cameraBtn, styles.cameraBtnPrimary]} onPress={() => void capturePhoto()}>
-                <Text style={styles.cameraBtnText}>{cameraBusy ? 'Saving...' : 'Shutter'}</Text>
+              <Pressable
+                style={[
+                  styles.cameraBtn,
+                  styles.cameraBtnPrimary,
+                  (!cameraReady || cameraBusy) && styles.cameraBtnDisabled,
+                ]}
+                onPress={() => void capturePhoto()}
+                disabled={!cameraReady || cameraBusy}
+              >
+                <Text style={styles.cameraBtnText}>
+                  {!cameraReady ? 'Starting Camera...' : cameraBusy ? 'Saving...' : 'Shutter'}
+                </Text>
               </Pressable>
             </View>
           </View>
@@ -674,6 +803,13 @@ const styles = StyleSheet.create({
   },
   notesInput: {
     minHeight: 110,
+  },
+  inlineButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  inlineButton: {
+    flex: 1,
   },
   vinWarningWrap: {
     borderWidth: 1,
@@ -768,5 +904,8 @@ const styles = StyleSheet.create({
   cameraBtnText: {
     color: '#fff',
     fontWeight: '800',
+  },
+  cameraBtnDisabled: {
+    opacity: 0.6,
   },
 });

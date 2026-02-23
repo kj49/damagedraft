@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -47,17 +47,22 @@ export default function HomeScreen({ navigation }: Props) {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content}>
-      <Text style={[styles.title, { color: theme.primary }]}>DamageDraft</Text>
+      <View style={[styles.brandWrap, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <Image source={require('../../assets/branding/damagedraft-wordmark.png')} style={styles.brandImage} resizeMode="contain" />
+      </View>
 
       <View style={styles.buttons}>
         <Button title="New Report" onPress={() => navigation.navigate('ReportEditor')} />
         <Button title="Incomplete Reports" onPress={() => navigation.navigate('IncompleteReports')} />
         <Button title="Completed Reports" onPress={() => navigation.navigate('CompletedReports')} />
+        <Button title="VIN Decoder" onPress={() => navigation.navigate('VinDecoder')} variant="secondary" />
         <Button title="Options" onPress={() => navigation.navigate('Options')} variant="secondary" />
       </View>
 
       <View style={[styles.pendingCard, { backgroundColor: theme.surface, borderColor: theme.border }]}> 
-        <Text style={[styles.pendingTitle, { color: theme.text }]}>Pending_Send_Confirmation</Text>
+        <Text style={[styles.pendingTitle, { color: theme.text }]}>
+          Pending Send Confirmation ({pendingItems.length})
+        </Text>
 
         {pendingItems.length === 0 ? (
           <Text style={{ color: theme.mutedText }}>No pending send confirmations.</Text>
@@ -102,6 +107,16 @@ const styles = StyleSheet.create({
     fontSize: 34,
     fontWeight: '800',
     marginBottom: 6,
+  },
+  brandWrap: {
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+  },
+  brandImage: {
+    width: '100%',
+    height: 120,
   },
   buttons: {
     gap: 10,

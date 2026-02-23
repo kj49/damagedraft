@@ -138,7 +138,7 @@ export default function CodeEntry({
             Selected: {selectedArea || '--'} / {selectedType || '--'} / {selectedSeverity || '--'}
           </Text>
           <Text style={[styles.label, { color: theme.mutedText }]}>Area</Text>
-          <View style={[styles.pickerWrap, { borderColor: theme.border, backgroundColor: '#fff' }]}>
+          <View style={[styles.pickerWrap, { borderColor: theme.border, backgroundColor: theme.surface }]}>
             <Picker
               selectedValue={selectedArea}
               onValueChange={(value) => {
@@ -164,7 +164,7 @@ export default function CodeEntry({
           </View>
 
           <Text style={[styles.label, { color: theme.mutedText }]}>Type</Text>
-          <View style={[styles.pickerWrap, { borderColor: theme.border, backgroundColor: '#fff' }]}>
+          <View style={[styles.pickerWrap, { borderColor: theme.border, backgroundColor: theme.surface }]}>
             <Picker
               selectedValue={selectedType}
               onValueChange={(value) => {
@@ -190,7 +190,7 @@ export default function CodeEntry({
           </View>
 
           <Text style={[styles.label, { color: theme.mutedText }]}>Severity</Text>
-          <View style={[styles.pickerWrap, { borderColor: theme.border, backgroundColor: '#fff' }]}>
+          <View style={[styles.pickerWrap, { borderColor: theme.border, backgroundColor: theme.surface }]}>
             <Picker
               selectedValue={selectedSeverity}
               onValueChange={(value) => setSelectedSeverity(String(value))}
@@ -216,7 +216,7 @@ export default function CodeEntry({
           codes.map((item) => (
             <View key={item.id} style={[styles.codeRow, { borderColor: theme.border }]}> 
               <Text style={[styles.codeText, { color: theme.text }]}>{item.code}</Text>
-              <Pressable onPress={() => onRemoveCode(item.id)} style={[styles.removeBtn, { backgroundColor: '#E2E8F0' }]}>
+              <Pressable onPress={() => onRemoveCode(item.id)} style={[styles.removeBtn, { backgroundColor: theme.border }]}>
                 <Text style={{ fontWeight: '700', color: theme.text }}>Remove</Text>
               </Pressable>
             </View>

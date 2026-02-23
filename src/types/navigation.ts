@@ -3,6 +3,7 @@ export type RootStackParamList = {
   ReportEditor: { reportId?: string } | undefined;
   IncompleteReports: undefined;
   CompletedReports: undefined;
+  VinDecoder: undefined;
   Options: undefined;
   DraftSuccess: { reportId: string };
 };
