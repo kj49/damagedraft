@@ -4,10 +4,6 @@ import * as Sharing from 'expo-sharing';
 
 import { listAllReportsForExport } from '../db/queries';
 
-function toIso(ms: number): string {
-  return new Date(ms).toISOString();
-}
-
 function toPlainDate(ms: number): string {
   const d = new Date(ms);
   const yyyy = d.getFullYear();
@@ -72,7 +68,7 @@ function buildCsvContent(data: Awaited<ReturnType<typeof listAllReportsForExport
     const hasVin = item.photos.some((photo) => photo.is_vin === 1) ? 1 : 0;
 
     const row = [
-      escapeCsv(toIso(item.report.created_at)),
+      escapeCsv(toPlainDate(item.report.created_at)),
       escapeCsv(item.report.vin_text),
       escapeCsv(item.report.unit_location),
       escapeCsv(makeModel),
