@@ -30,6 +30,7 @@ const REPORT_UPDATABLE_FIELDS = new Set([
   'vin_text',
   'make_text',
   'model_text',
+  'color_text',
   'unit_location',
   'manufacturer_group',
   'recipients',
@@ -44,6 +45,7 @@ type ReportUpdateFields = Partial<
     | 'vin_text'
     | 'make_text'
     | 'model_text'
+    | 'color_text'
     | 'unit_location'
     | 'manufacturer_group'
     | 'recipients'
@@ -79,12 +81,13 @@ export async function createReport(status: ReportStatus = 'incomplete'): Promise
         vin_text,
         make_text,
         model_text,
+        color_text,
         unit_location,
         manufacturer_group,
         recipients,
         notes
       )
-      VALUES (?, ?, ?, ?, ?, '', '', '', '', ?, ?, '')
+      VALUES (?, ?, ?, ?, ?, '', '', '', '', '', ?, ?, '')
     `,
     id,
     status,
@@ -123,12 +126,13 @@ export async function quickDuplicateReport(sourceReportId: string): Promise<Repo
         vin_text,
         make_text,
         model_text,
+        color_text,
         unit_location,
         manufacturer_group,
         recipients,
         notes
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     id,
     'incomplete',
@@ -138,6 +142,7 @@ export async function quickDuplicateReport(sourceReportId: string): Promise<Repo
     source.vin_text,
     source.make_text,
     source.model_text,
+    source.color_text,
     source.unit_location,
     source.manufacturer_group,
     source.recipients,

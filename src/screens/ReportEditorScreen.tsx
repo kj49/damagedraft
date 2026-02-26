@@ -57,6 +57,26 @@ interface AttachmentPlanItem {
   sourceUri: string;
   targetFileName: string;
 }
+interface ColorOption {
+  key: string;
+  label: string;
+  swatch: string;
+  textColor?: string;
+}
+
+// Reduced to a practical 10-color yard palette based on common Ford/Stellantis exterior families.
+const COLOR_OPTIONS: ColorOption[] = [
+  { key: 'black', label: 'Black', swatch: '#1C1C1C', textColor: '#FFFFFF' },
+  { key: 'white', label: 'White', swatch: '#F5F5F5', textColor: '#222222' },
+  { key: 'silver', label: 'Silver', swatch: '#B0BEC5' },
+  { key: 'gray', label: 'Gray', swatch: '#757575', textColor: '#FFFFFF' },
+  { key: 'blue', label: 'Blue', swatch: '#1565C0', textColor: '#FFFFFF' },
+  { key: 'red', label: 'Red', swatch: '#C62828', textColor: '#FFFFFF' },
+  { key: 'green', label: 'Green', swatch: '#2E7D32', textColor: '#FFFFFF' },
+  { key: 'brown', label: 'Brown', swatch: '#6D4C41', textColor: '#FFFFFF' },
+  { key: 'beige', label: 'Beige/Tan', swatch: '#D7CCC8' },
+  { key: 'orange', label: 'Orange', swatch: '#EF6C00', textColor: '#FFFFFF' },
+];
 
 function sanitizeFileToken(value: string, fallback: string): string {
   const cleaned = value
@@ -79,6 +99,7 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
   const [vinText, setVinText] = useState('');
   const [makeText, setMakeText] = useState('');
   const [modelText, setModelText] = useState('');
+  const [colorText, setColorText] = useState('');
   const [unitLocation, setUnitLocation] = useState('');
   const [recipients, setRecipients] = useState('');
   const [notes, setNotes] = useState('');
@@ -166,6 +187,7 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
     setVinText(detail.vin_text);
     setMakeText(detail.make_text || '');
     setModelText(detail.model_text || '');
+    setColorText(detail.color_text || '');
     setUnitLocation(detail.unit_location);
     setRecipients(detail.recipients);
     setNotes(detail.notes);
@@ -237,6 +259,7 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
         vin_text: normalizeVinLight(vinText),
         make_text: makeText.trim(),
         model_text: modelText.trim(),
+        color_text: colorText.trim(),
         unit_location: unitLocation,
         manufacturer_group: detectManufacturerGroupFromVin(vinText),
         recipients,
@@ -244,7 +267,7 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
       });
       setStatus(finalStatus);
     },
-    [reportId, status, vinText, makeText, modelText, unitLocation, recipients, notes]
+    [reportId, status, vinText, makeText, modelText, colorText, unitLocation, recipients, notes]
   );
 
   const handleAddCode = async (code: string) => {
@@ -530,6 +553,13 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
       }
     }
 
+    if (!colorText.trim()) {
+      const proceed = await askConfirm('Are you sure you want to proceed without color?');
+      if (!proceed) {
+        return;
+      }
+    }
+
     if (photos.length > 12) {
       const proceed = await askConfirm('Many photos may exceed email limits; consider fewer photos. Proceed anyway?');
       if (!proceed) {
@@ -565,6 +595,9 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
       await openEmailDraft({
         recipientsText: recipients,
         vinText: vinTrimmed,
+        makeText: makeText.trim(),
+        modelText: modelText.trim(),
+        colorText: colorText.trim(),
         unitLocation: unitLocation.trim(),
         notes,
         codes: codes.map((item) => item.code),
@@ -688,6 +721,47 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
               placeholder="Model (auto-fill when available)"
               placeholderTextColor={theme.mutedText}
               style={[styles.input, styles.inlineButton, { borderColor: theme.border, color: theme.text }]}
+            />
+          </View>
+        </View>
+
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Color (Optional)</Text>
+          <Text style={[styles.swatchHint, { color: theme.mutedText }]}>
+            Tap one swatch. No default is selected.
+          </Text>
+          <View style={styles.swatchGrid}>
+            {COLOR_OPTIONS.map((option) => {
+              const selected = colorText.trim().toLowerCase() === option.label.toLowerCase();
+              return (
+                <Pressable
+                  key={option.key}
+                  onPress={() => setColorText(option.label)}
+                  style={[
+                    styles.swatchButton,
+                    {
+                      backgroundColor: option.swatch,
+                      borderColor: selected ? theme.primary : theme.border,
+                      borderWidth: selected ? 3 : 1,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.swatchLabel, { color: option.textColor ?? '#FFFFFF' }]}>
+                    {option.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <View style={styles.colorMetaRow}>
+            <Text style={[styles.colorSelectedText, { color: theme.text }]}>
+              Selected: {colorText || 'None'}
+            </Text>
+            <Button
+              title="Clear Color"
+              variant="secondary"
+              onPress={() => setColorText('')}
+              style={styles.clearColorButton}
             />
           </View>
         </View>
@@ -887,6 +961,42 @@ const styles = StyleSheet.create({
   },
   inlineButton: {
     flex: 1,
+  },
+  swatchHint: {
+    fontSize: 12,
+  },
+  swatchGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  swatchButton: {
+    width: '18.4%',
+    minHeight: 46,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    paddingVertical: 6,
+  },
+  swatchLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  colorMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  colorSelectedText: {
+    fontSize: 14,
+    fontWeight: '700',
+    flexShrink: 1,
+  },
+  clearColorButton: {
+    minWidth: 120,
   },
   vinWarningWrap: {
     borderWidth: 1,

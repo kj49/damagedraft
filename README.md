@@ -50,6 +50,7 @@ npx expo run:android
 
 - New report, save incomplete, resume incomplete
 - Make + model fields in report editor (optional)
+- Optional color swatch picker (10-color preset, no default)
 - VIN-based make/model auto-fill (best-effort, with online VIN decode fallback when available)
 - Completed reports list + edit + draft again
 - Completed reports quick duplicate (copies VIN/location/recipients into a new incomplete report; photos/codes cleared)

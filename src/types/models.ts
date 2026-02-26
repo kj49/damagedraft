@@ -21,6 +21,7 @@ export interface ReportRow {
   vin_text: string;
   make_text: string;
   model_text: string;
+  color_text: string;
   unit_location: string;
   manufacturer_group: ManufacturerGroup;
   recipients: string;

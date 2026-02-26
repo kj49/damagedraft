@@ -18,6 +18,9 @@ export function buildDraftSubject(vinText: string, unitLocation: string): string
 
 export function buildDraftBody(params: {
   vinText: string;
+  makeText: string;
+  modelText: string;
+  colorText: string;
   codes: string[];
   unitLocation: string;
   notes: string;
@@ -27,6 +30,8 @@ export function buildDraftBody(params: {
   const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   return [
     `VIN: ${params.vinText || ''}`,
+    `Make/Model: ${[params.makeText, params.modelText].filter(Boolean).join(' / ')}`,
+    `Color: ${params.colorText || ''}`,
     `Location: ${params.unitLocation || ''}`,
     `Codes: ${params.codes.length ? params.codes.join(', ') : ''}`,
     `Notes: ${params.notes || ''}`,
@@ -40,6 +45,9 @@ export function buildDraftBody(params: {
 export async function openEmailDraft(options: {
   recipientsText: string;
   vinText: string;
+  makeText: string;
+  modelText: string;
+  colorText: string;
   unitLocation: string;
   notes: string;
   codes: string[];
@@ -55,6 +63,9 @@ export async function openEmailDraft(options: {
   const subject = buildDraftSubject(options.vinText, options.unitLocation);
   const body = buildDraftBody({
     vinText: options.vinText,
+    makeText: options.makeText,
+    modelText: options.modelText,
+    colorText: options.colorText,
     codes: options.codes,
     unitLocation: options.unitLocation,
     notes: options.notes,
