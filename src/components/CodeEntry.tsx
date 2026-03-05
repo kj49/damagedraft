@@ -69,6 +69,9 @@ export default function CodeEntry({
     return topTypeCodes.map((code) => byCode.get(code)).filter(Boolean) as CodeOption[];
   }, [sortedTypes, topTypeCodes]);
 
+  const areaByCode = useMemo(() => new Map(sortedAreas.map((item) => [item.code, item.label])), [sortedAreas]);
+  const typeByCode = useMemo(() => new Map(sortedTypes.map((item) => [item.code, item.label])), [sortedTypes]);
+
   const addCode = async () => {
     const area = manualMode ? manualArea.trim() : selectedArea;
     const type = manualMode ? manualType.trim() : selectedType;
@@ -135,7 +138,16 @@ export default function CodeEntry({
       ) : (
         <View style={styles.dropdownWrap}>
           <Text style={[styles.selectedPreview, { color: theme.text }]}>
-            Selected: {selectedArea || '--'} / {selectedType || '--'} / {selectedSeverity || '--'}
+            Selected:
+          </Text>
+          <Text style={[styles.selectedPreviewLine, { color: theme.text }]}>
+            Area: {areaByCode.get(selectedArea) ?? '--'}
+          </Text>
+          <Text style={[styles.selectedPreviewLine, { color: theme.text }]}>
+            Type: {typeByCode.get(selectedType) ?? '--'}
+          </Text>
+          <Text style={[styles.selectedPreviewLine, { color: theme.text }]}>
+            Severity: {selectedSeverity || '--'}
           </Text>
           <Text style={[styles.label, { color: theme.mutedText }]}>Area</Text>
           <View style={[styles.pickerWrap, { borderColor: theme.border, backgroundColor: theme.surface }]}>
@@ -262,6 +274,9 @@ const styles = StyleSheet.create({
   selectedPreview: {
     fontSize: 13,
     fontWeight: '700',
+  },
+  selectedPreviewLine: {
+    fontSize: 13,
   },
   manualRow: {
     flexDirection: 'row',

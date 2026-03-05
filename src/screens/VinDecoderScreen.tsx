@@ -88,8 +88,6 @@ export default function VinDecoderScreen() {
             value={vinInput}
             onChangeText={setVinInput}
             autoCapitalize="characters"
-            placeholder="Enter VIN (17) or use OCR"
-            placeholderTextColor={theme.mutedText}
             style={[styles.input, { borderColor: theme.border, color: theme.text }]}
           />
           <Button title="Capture VIN Photo (OCR)" onPress={() => void openCamera()} />

@@ -64,7 +64,7 @@ interface ColorOption {
   textColor?: string;
 }
 
-// Reduced to a practical 10-color yard palette based on common Ford/Stellantis exterior families.
+// Reduced to a practical 12-color yard palette based on common Ford/Stellantis exterior families.
 const COLOR_OPTIONS: ColorOption[] = [
   { key: 'black', label: 'Black', swatch: '#1C1C1C', textColor: '#FFFFFF' },
   { key: 'white', label: 'White', swatch: '#F5F5F5', textColor: '#222222' },
@@ -76,6 +76,13 @@ const COLOR_OPTIONS: ColorOption[] = [
   { key: 'brown', label: 'Brown', swatch: '#6D4C41', textColor: '#FFFFFF' },
   { key: 'beige', label: 'Beige/Tan', swatch: '#D7CCC8' },
   { key: 'orange', label: 'Orange', swatch: '#EF6C00', textColor: '#FFFFFF' },
+  { key: 'teal', label: 'Teal', swatch: '#00796B', textColor: '#FFFFFF' },
+  { key: 'yellow', label: 'Yellow', swatch: '#FBC02D', textColor: '#222222' },
+];
+
+const COLOR_ROWS: ColorOption[][] = [
+  COLOR_OPTIONS.slice(0, 6),
+  COLOR_OPTIONS.slice(6, 12),
 ];
 
 function sanitizeFileToken(value: string, fallback: string): string {
@@ -637,8 +644,6 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
           <TextInput
             value={vinText}
             onChangeText={setVinText}
-            placeholder="Type last 8 (manual) or scan VIN photo"
-            placeholderTextColor={theme.mutedText}
             style={[styles.input, { borderColor: theme.border, color: theme.text }]}
             autoCapitalize="characters"
           />
@@ -693,8 +698,6 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
           <TextInput
             value={unitLocation}
             onChangeText={setUnitLocation}
-            placeholder="hmc e35"
-            placeholderTextColor={theme.mutedText}
             style={[styles.input, styles.locationInput, { borderColor: theme.border, color: theme.text }]}
           />
         </View>
@@ -708,8 +711,6 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
                 makeEditedRef.current = value.trim().length > 0;
                 setMakeText(value);
               }}
-              placeholder="Make (auto-fill when VIN resolves)"
-              placeholderTextColor={theme.mutedText}
               style={[styles.input, styles.inlineButton, { borderColor: theme.border, color: theme.text }]}
             />
             <TextInput
@@ -718,8 +719,6 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
                 modelEditedRef.current = value.trim().length > 0;
                 setModelText(value);
               }}
-              placeholder="Model (auto-fill when available)"
-              placeholderTextColor={theme.mutedText}
               style={[styles.input, styles.inlineButton, { borderColor: theme.border, color: theme.text }]}
             />
           </View>
@@ -731,27 +730,31 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
             Tap one swatch. No default is selected.
           </Text>
           <View style={styles.swatchGrid}>
-            {COLOR_OPTIONS.map((option) => {
-              const selected = colorText.trim().toLowerCase() === option.label.toLowerCase();
-              return (
-                <Pressable
-                  key={option.key}
-                  onPress={() => setColorText(option.label)}
-                  style={[
-                    styles.swatchButton,
-                    {
-                      backgroundColor: option.swatch,
-                      borderColor: selected ? theme.primary : theme.border,
-                      borderWidth: selected ? 3 : 1,
-                    },
-                  ]}
-                >
-                  <Text style={[styles.swatchLabel, { color: option.textColor ?? '#FFFFFF' }]}>
-                    {option.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
+            {COLOR_ROWS.map((row, rowIndex) => (
+              <View key={`row-${rowIndex}`} style={styles.swatchRow}>
+                {row.map((option) => {
+                  const selected = colorText.trim().toLowerCase() === option.label.toLowerCase();
+                  return (
+                    <Pressable
+                      key={option.key}
+                      onPress={() => setColorText(option.label)}
+                      style={[
+                        styles.swatchButton,
+                        {
+                          backgroundColor: option.swatch,
+                          borderColor: selected ? theme.primary : theme.border,
+                          borderWidth: selected ? 3 : 1,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.swatchLabel, { color: option.textColor ?? '#FFFFFF' }]}>
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ))}
           </View>
           <View style={styles.colorMetaRow}>
             <Text style={[styles.colorSelectedText, { color: theme.text }]}>
@@ -806,8 +809,6 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
             multiline
             numberOfLines={4}
             textAlignVertical="top"
-            placeholder="Optional notes"
-            placeholderTextColor={theme.mutedText}
             style={[styles.input, styles.notesInput, { borderColor: theme.border, color: theme.text }]}
           />
         </View>
@@ -817,8 +818,6 @@ export default function ReportEditorScreen({ navigation, route }: Props) {
           <TextInput
             value={recipients}
             onChangeText={setRecipients}
-            placeholder="email1@example.com;email2@example.com"
-            placeholderTextColor={theme.mutedText}
             style={[styles.input, { borderColor: theme.border, color: theme.text }]}
             autoCapitalize="none"
           />
@@ -966,12 +965,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   swatchGrid: {
+    gap: 8,
+  },
+  swatchRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
   },
   swatchButton: {
-    width: '18.4%',
+    flex: 1,
     minHeight: 46,
     borderRadius: 10,
     justifyContent: 'center',

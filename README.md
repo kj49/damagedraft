@@ -2,6 +2,13 @@
 
 Android-first Expo app for creating Outlook-ready damage report email drafts. The app builds and pre-fills the draft, and the user still presses **Send** in Outlook/email client.
 
+## Project Status
+
+- Experimental prototype
+- Developed independently
+- Currently in prerelease testing
+- Not production software yet
+
 ## Stack
 
 - Expo SDK 54 + React Native 0.81
@@ -35,6 +42,11 @@ npx expo start
 npx expo run:android
 ```
 
+## Testing Builds
+
+- Download prerelease APKs from GitHub Releases for tester evaluation.
+- Prerelease builds are intended for testing and feedback.
+
 ## Important Build Notes
 
 - `expo-text-extractor` is a native module and is not available in standard Expo Go.
@@ -50,7 +62,7 @@ npx expo run:android
 
 - New report, save incomplete, resume incomplete
 - Make + model fields in report editor (optional)
-- Optional color swatch picker (10-color preset, no default)
+- Optional color swatch picker (12-color preset, no default)
 - VIN-based make/model auto-fill (best-effort, with online VIN decode fallback when available)
 - Completed reports list + edit + draft again
 - Completed reports quick duplicate (copies VIN/location/recipients into a new incomplete report; photos/codes cleared)

@@ -1,6 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 
-export const DEFAULT_RECIPIENTS = 'claims@railyard.local;damage@railyard.local';
+export const DEFAULT_RECIPIENTS = '';
 export const DEFAULT_EXPORT_EMAIL = '';
 export const DEFAULT_THEME_MODE = 'system';
 export const DEFAULT_THEME_PRIMARY = '#1565C0';
@@ -141,6 +141,10 @@ export async function initDb(): Promise<void> {
         UPDATE settings
         SET theme_mode = 'system'
         WHERE theme_mode IS NULL OR theme_mode = '';
+
+        UPDATE settings
+        SET default_recipients = ''
+        WHERE default_recipients = 'claims@railyard.local;damage@railyard.local';
       `);
 
       await db.runAsync(

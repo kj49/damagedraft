@@ -160,8 +160,6 @@ export default function OptionsScreen({ navigation }: Props) {
         <TextInput
           value={defaultRecipients}
           onChangeText={setDefaultRecipients}
-          placeholder="email1@example.com;email2@example.com"
-          placeholderTextColor={theme.mutedText}
           style={[styles.input, { borderColor: theme.border, color: theme.text }]}
           autoCapitalize="none"
         />
@@ -170,8 +168,6 @@ export default function OptionsScreen({ navigation }: Props) {
         <TextInput
           value={defaultExportEmail}
           onChangeText={setDefaultExportEmail}
-          placeholder="exports@example.com"
-          placeholderTextColor={theme.mutedText}
           style={[styles.input, { borderColor: theme.border, color: theme.text }]}
           autoCapitalize="none"
           keyboardType="email-address"
